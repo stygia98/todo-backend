@@ -1,0 +1,45 @@
+# 공통 설정 (모든 프로파일이 공유한다)
+# 환경마다 달라지는 값(DB 접속, ddl-auto)은 application-{프로파일}.yml 에 둔다.
+spring:
+  application:
+    name: todo-backend
+
+  profiles:
+    # 기본 프로파일. 지정하지 않으면 DB 접속 정보 없이 기동을 시도해 실패한다.
+    # 운영에서는 실행 시 --spring.profiles.active=prod 로 덮어쓴다.
+    active: local
+
+  jpa:
+    properties:
+      hibernate:
+        jdbc:
+          # 타임존을 UTC로 고정한다. 로컬은 KST(+09:00), RDS 기본값은 UTC라
+          # 설정하지 않으면 시각이 9시간 어긋난 채 배포 후에야 드러난다.
+          # 저장·비교는 전부 UTC로 하고, 표시할 때만 브라우저 로컬 시각으로 변환한다.
+          time_zone: UTC
+
+# Jackson 날짜 설정은 두지 않는다.
+# Spring Boot 4는 Jackson 3을 쓰고 기본값이 이미 ISO-8601 문자열이므로 무설정으로 충족된다.
+# Boot 3 시절의 spring.jackson.serialization.* 경로는 Boot 4에서 동작하지 않는다.
+
+jwt:
+  # 서명 알고리즘은 HS256 고정. raw UTF-8 32자 이상이어야 하며 Base64로 디코드하지 않는다.
+  # 32자 문자열을 Base64 디코드하면 24바이트가 되어 WeakKeyException 으로 기동에 실패한다.
+  secret: ${JWT_SECRET}
+  # 24시간 (밀리초)
+  expiration: ${JWT_EXPIRATION:86400000}
+
+app:
+  # OAuth2 리다이렉트의 기준 주소. 반드시 단일 URL이다.
+  # {frontend-url}/oauth/callback?token=xxx 형태로 조립되므로 쉼표 목록을 넣으면 주소가 깨진다.
+  frontend-url: ${FRONTEND_URL}
+  cors:
+    # CORS 허용 오리진. 쉼표로 구분된 목록이다.
+    # 운영에서 Amplify 브랜치 도메인과 커스텀 도메인을 동시에 허용해야 하므로
+    # 위의 frontend-url 과 하나로 합치지 않는다.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+
+# 구글 OAuth2 registration 블록은 여기에 두지 않는다 (Phase 5에서 추가).
+# oauth2-client 스타터가 이미 classpath에 있어, client-id를 환경변수로 바인딩해 두면
+# GOOGLE_CLIENT_ID 미설정 시 플레이스홀더 해석 실패로 기동 자체가 깨진다.
+# registration 이 없으면 자동 설정이 조건부라 아무 빈도 만들지 않아 안전하다.

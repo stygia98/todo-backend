@@ -1,0 +1,27 @@
+# 로컬 개발 프로파일
+# 공통 설정(application.yml)에 병합되며, 같은 키만 덮어쓴다.
+spring:
+  datasource:
+    # todolist_db 데이터베이스에 직접 접속한다.
+    # postgres DB에 ?currentSchema=todolist_db 로 붙지 않는다 — 그 스키마는 존재하지 않는다.
+    # DB 생성: createdb -U postgres todolist_db (CLAUDE.md 13장)
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/todolist_db}
+    username: ${DB_USERNAME}
+    # 비밀번호는 절대 이 파일에 적지 않는다. 환경변수로만 공급한다.
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      # 로컬은 엔티티 변경을 자동 반영한다. 운영(prod)은 validate 다.
+      ddl-auto: update
+    # 개발 중 실행되는 SQL을 확인한다.
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+logging:
+  level:
+    org.hibernate: info
+    # 바인딩 파라미터까지 보려면 org.hibernate.orm.jdbc.bind 를 trace 로 올린다.
+    org.hibernate.SQL: debug
