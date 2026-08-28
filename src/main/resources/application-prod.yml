@@ -1,0 +1,22 @@
+# 운영 프로파일 (AWS RDS)
+# 실행: java -jar app.jar --spring.profiles.active=prod
+# 공통 설정(application.yml)에 병합되며, 같은 키만 덮어쓴다.
+spring:
+  datasource:
+    # RDS 엔드포인트. 기본값을 두지 않는다 — 미설정 시 조용히 로컬에 붙는 사고를 막는다.
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      # 운영은 스키마를 자동 변경하지 않는다. 엔티티와 실제 테이블이 다르면 기동에 실패한다.
+      # 스키마는 Phase 11에서 DDL 스크립트를 추출해 RDS에 1회 수동 적용한다 (CLAUDE.md 4장).
+      ddl-auto: validate
+    # 운영에서는 SQL을 로그로 남기지 않는다.
+    show-sql: false
+
+logging:
+  level:
+    org.hibernate: warn
+    org.hibernate.SQL: warn
