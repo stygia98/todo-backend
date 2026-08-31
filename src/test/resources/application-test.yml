@@ -1,0 +1,33 @@
+# 테스트 프로파일
+#
+# 공통 설정(src/main/resources/application.yml)에 병합된다.
+# src/main/resources 는 테스트 classpath 에도 포함되므로 hibernate.jdbc.time_zone: UTC 등
+# 공통 설정을 여기에 다시 적지 않는다. 중복 선언하면 한쪽만 고쳤을 때 값이 갈라진다.
+#
+# ⚠️ 실행 시 DB_PASSWORD 환경변수가 필요하다. 비밀번호는 저장소에 두지 않는다.
+#    예) DB_PASSWORD='비밀번호' ./mvnw test
+spring:
+  datasource:
+    # 테스트 전용 데이터베이스. 운영·로컬 데이터와 섞이지 않는다.
+    # 생성: createdb -U postgres todolist_test
+    url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/todolist_test}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      # 매 테스트 실행마다 스키마를 새로 만들고 종료 시 제거한다.
+      ddl-auto: create-drop
+    show-sql: false
+
+# H2 를 쓰지 않는다. 검색에 LOWER(...) LIKE 등 PostgreSQL 문법을 쓰므로 동작이 갈린다.
+# Docker 를 쓰지 않기로 했으므로 Testcontainers 도 쓰지 않는다.
+# 따라서 @DataJpaTest 에는 반드시 다음 두 애노테이션을 함께 붙인다.
+#   @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+#   @ActiveProfiles("test")
+# 없으면 임베디드 DB 로 교체를 시도한다.
+
+logging:
+  level:
+    org.hibernate: warn
+    org.hibernate.SQL: warn
