@@ -58,6 +58,15 @@ STS/Eclipse의 `Run Configurations → Environment` 탭에 같은 키를 등록�
 
 > **`application-local.yml`에 비밀번호 기본값을 넣지 않는다.** 편해 보이지만 평문이 다시 커밋된다.
 
+**테스트 실행에도 `DB_PASSWORD`가 필요하다.**
+
+```bash
+DB_PASSWORD='실제_비밀번호' ./mvnw test
+```
+
+`src/test/resources/application-test.yml`은 `url`과 `username`에만 기본값을 두고 **`password`는 환경변수로만 받는다.** 기본값을 주면 테스트는 편해지지만 비밀번호가 저장소에 다시 들어온다.
+테스트는 `todolist_test` 데이터베이스를 쓰며 `ddl-auto: create-drop`이라 매 실행마다 스키마가 새로 만들어지고 종료 시 제거된다.
+
 ### 데이터베이스
 
 ```bash
