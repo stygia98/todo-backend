@@ -90,7 +90,9 @@ DB_PASSWORD='실제_비밀번호' ./mvnw test
 | jjwt | **0.12.6** × 3 | `jjwt-api` + `jjwt-impl`(runtime) + `jjwt-jackson`(runtime) |
 
 - **jjwt가 3개인 것은 정상이다.** `impl`·`jackson`의 `<scope>runtime</scope>`은 의도된 설정이며, "정리"하면 기동 시 `ClassNotFoundException`이 난다.
-- jjwt는 **0.12 문법**이다. `Jwts.parser().verifyWith(key).build()` · `Jwts.builder().signWith(key)`. 인터넷 예제 다수인 0.11 문법(`setSigningKey`, `SignatureAlgorithm.HS256`)을 옮기면 컴파일에 실패한다.
+- jjwt는 **0.12 문법**이다. `Jwts.parser().verifyWith(key).build()` · `Jwts.builder().signWith(key, Jwts.SIG.HS256)`.
+  > ⚠️ 인터넷 예제 다수인 0.11 문법(`setSigningKey`, `SignatureAlgorithm.HS256`)은 **0.12.6에도 deprecated 상태로 남아 있어 컴파일이 통과한다.** 오류로 걸러지지 않고 경고만 나고 지나가므로, 위 Jackson 항목과 같은 실패 양상이다(`jjwt-api-0.12.6.jar`를 `javap`로 확인).
+  > ⚠️ **`signWith`에 알고리즘을 반드시 넘긴다.** 인자 없는 `signWith(key)`는 jjwt가 **키 길이로 알고리즘을 추론**한다(32~47B→HS256, 48~63B→HS384, 64B+→HS512). 그러면 아래 "HS256 고정"이 코드가 아니라 **`JWT_SECRET`의 길이에 좌우된다.** Phase 3 DoD 검증에서 49바이트 시크릿이 실제로 `alg=HS384`를 발급해 발견했다.
 - `pom.xml`은 **Boot 4의 기능별 분리 스타터명**을 쓴다. `spring-boot-starter-web`(X) → **`-webmvc`**(O), `spring-boot-starter-oauth2-client`(X) → **`-security-oauth2-client`**(O), `spring-boot-starter-test` 단일(X) → **`-webmvc-test` / `-security-test` / `-validation-test` / `-data-jpa-test` / `-security-oauth2-client-test`**(O).
 - `maven-compiler-plugin`의 `default-compile`·`default-testCompile` 두 execution의 `annotationProcessorPaths`(Lombok)를 **삭제하거나 단순화하지 않는다.**
 
@@ -112,7 +114,7 @@ DB_PASSWORD='실제_비밀번호' ./mvnw test
 - **`permitAll` 목록에서 Swagger 경로를 빼먹지 않는다.** 빼면 Phase 1의 DoD("Swagger UI 접속")가 조용히 회귀한다.
 - **Jackson 날짜 설정을 넣지 않는다.** Boot 4는 Jackson 3(`tools.jackson`)을 쓰고 기본값이 이미 ISO-8601이라 무설정으로 충족된다.
   > ⚠️ 이 저장소에는 `com.fasterxml.jackson` 2.x가 springdoc·jjwt-jackson을 통해 **compile scope로 함께 들어와 있다.** 그래서 Boot 3 예제의 `SerializationFeature.WRITE_DATES_AS_TIMESTAMPS`는 **컴파일이 통과한다.** 대신 Boot 4의 Jackson 3 `ObjectMapper`에 아무 영향을 주지 못해 **조용히 무시된다.** 설정했는데 왜 안 되는지 찾게 되므로 애초에 참조하지 않는다.
-- **`JWT_SECRET`은 raw UTF-8 32자 이상을 그대로 쓴다.** Base64로 디코드하지 않는다(32자 문자열이 24바이트가 되어 `WeakKeyException`). 알고리즘은 **HS256 고정**이며 HS512로 바꾸면 64바이트가 필요해진다.
+- **`JWT_SECRET`은 raw UTF-8 32자 이상을 그대로 쓴다.** Base64로 디코드하지 않는다(32자 문자열이 24바이트가 되어 `WeakKeyException`). 알고리즘은 **HS256 고정**이며 HS512로 바꾸면 64바이트가 필요해진다. **고정은 시크릿 길이가 아니라 `signWith(key, Jwts.SIG.HS256)`이 보장한다** (위 버전 표 참조).
 - **`FRONTEND_URL`(단일 URL)과 `CORS_ALLOWED_ORIGINS`(쉼표 목록)를 하나로 합치지 않는다.** 합치면 OAuth2 리다이렉트 주소가 `https://a.com,https://b.com/oauth/callback?token=...`처럼 깨진다. 로컬은 값이 같아 정상 동작하고 **운영에서만 발현한다.**
 - **타임존은 UTC로 고정한다.** `application.yml`의 `spring.jpa.properties.hibernate.jdbc.time_zone: UTC`를 지우지 않는다. 로컬은 KST(+09:00), RDS는 UTC라 지우면 시각이 9시간 어긋난 채 배포 후에야 드러난다.
 - **`@DataJpaTest`에는 `@AutoConfigureTestDatabase(replace = NONE)` + `@ActiveProfiles("test")`를 함께 붙인다.** 기본값이 임베디드 DB로 교체를 시도한다.
