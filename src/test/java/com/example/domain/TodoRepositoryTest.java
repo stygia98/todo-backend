@@ -8,6 +8,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.time.Duration;
@@ -95,6 +96,72 @@ class TodoRepositoryTest {
         Page<Todo> page = todoRepository.findByUserIdAndDeletedAtIsNull(stranger.getId(), PageRequest.of(0, 10));
 
         assertThat(page.getTotalElements()).isZero();
+    }
+
+    /**
+     * Phase 4 착수 시 확인되지 않았던 리스크의 실측이다.
+     *
+     * <p>애초에 {@code @Query}("... :completed IS NULL OR ...")로 만들었다가
+     * {@link TodoSpecifications} 로 전환했다. PostgreSQL 이 named parameter 의 타입을
+     * SQL 텍스트 <b>첫 실행 시점의 문맥</b>으로 추론하는데, {@code null} 이 최초 바인딩이면
+     * 문맥이 없어 {@code bytea} 로 기본 처리돼 {@code lower(bytea)} 나 {@code bytea→boolean}
+     * 캐스팅 오류가 났다({@code TodoServiceTest} 에서 재현, 2026-09-01). JPQL 안에서
+     * {@code CAST(:param AS ...)} 를 추가해도 소용없었다 — pgjdbc 가 파라미터를 바인딩하는
+     * 시점의 와이어 타입 자체가 문제였기 때문이다. Criteria 기반 {@link Specification} 은
+     * 컬럼의 실제 타입을 메타모델에서 알고 명시적으로 바인딩하므로 이 문제가 없다.
+     */
+    @Test
+    @DisplayName("Specification — completed 가 null 이면 전체가 조회된다 (PostgreSQL 파라미터 타입 추론 검증)")
+    void searchWithNullCompletedReturnsAll() {
+        User user = createUser("search-null@example.com");
+        todoRepository.save(Todo.create(user, "완료된 것", null, null, null)).updateCompleted(true);
+        todoRepository.save(Todo.create(user, "미완료인 것", null, null, null));
+        entityManager.flush();
+        entityManager.clear();
+
+        Page<Todo> page = todoRepository.findAll(searchSpec(user.getId(), null, null), PageRequest.of(0, 10));
+
+        assertThat(page.getTotalElements()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("Specification — completed 를 true/false 로 지정하면 필터가 적용된다")
+    void searchWithCompletedFilters() {
+        User user = createUser("search-filter@example.com");
+        Todo done = todoRepository.save(Todo.create(user, "완료된 것", null, null, null));
+        todoRepository.save(Todo.create(user, "미완료인 것", null, null, null));
+        done.updateCompleted(true);
+        entityManager.flush();
+        entityManager.clear();
+
+        Page<Todo> completedOnly = todoRepository.findAll(searchSpec(user.getId(), true, null), PageRequest.of(0, 10));
+        Page<Todo> pendingOnly = todoRepository.findAll(searchSpec(user.getId(), false, null), PageRequest.of(0, 10));
+
+        assertThat(completedOnly.getContent()).extracting(Todo::getTitle).containsExactly("완료된 것");
+        assertThat(pendingOnly.getContent()).extracting(Todo::getTitle).containsExactly("미완료인 것");
+    }
+
+    @Test
+    @DisplayName("Specification — 대소문자를 섞은 키워드로도 검색된다")
+    void searchIsCaseInsensitive() {
+        User user = createUser("search-case@example.com");
+        todoRepository.save(Todo.create(user, "Spring Boot 학습", null, null, null));
+        todoRepository.save(Todo.create(user, "무관한 항목", null, null, null));
+        entityManager.flush();
+        entityManager.clear();
+
+        Page<Todo> page = todoRepository.findAll(
+                searchSpec(user.getId(), null, "SPRING boot"), PageRequest.of(0, 10));
+
+        assertThat(page.getContent()).extracting(Todo::getTitle).containsExactly("Spring Boot 학습");
+    }
+
+    private Specification<Todo> searchSpec(Long userId, Boolean completed, String keyword) {
+        return Specification.allOf(
+                TodoSpecifications.ownedBy(userId),
+                TodoSpecifications.completedIs(completed),
+                TodoSpecifications.titleContains(keyword)
+        );
     }
 
     @Test
