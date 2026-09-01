@@ -31,3 +31,21 @@ logging:
   level:
     org.hibernate: warn
     org.hibernate.SQL: warn
+
+# ── 테스트 전용 고정값 ───────────────────────────────────────────────
+# Phase 3 부터 @SpringBootTest 가 전체 컨텍스트를 띄운다. JwtTokenProvider 는 생성자에서,
+# SecurityConfig 는 필드에서 아래 값을 읽으므로 없으면 플레이스홀더 미해결로 기동이 깨진다.
+# Phase 2 까지 통과했던 이유는 이 값을 읽는 빈이 없어 해석 자체가 일어나지 않아서다.
+#
+# ⚠️ DB_PASSWORD 와 달리 여기에 리터럴로 적는다. 실제 자격증명이 아니라 테스트 픽스처이며,
+#    환경변수로 받으면 개발자마다 다른 키로 서명해 재현성이 사라진다.
+jwt:
+  # HS256 은 raw UTF-8 32바이트 이상을 요구한다. 아래는 66바이트다.
+  secret: todolist-test-only-signing-key-do-not-use-in-production-0123456789
+  expiration: 86400000
+
+app:
+  # Phase 5(OAuth2) 전까지 읽는 빈이 없지만, 나중에 생길 때 테스트가 조용히 깨지지 않도록 미리 채운다.
+  frontend-url: http://localhost:3000
+  cors:
+    allowed-origins: http://localhost:3000
