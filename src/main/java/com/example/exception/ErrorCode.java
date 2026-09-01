@@ -15,6 +15,11 @@ import org.springframework.http.HttpStatus;
  *
  * <p>{@code TODO_NOT_FOUND} 는 Phase 4 에서 쓰지만 지금 넣어둔다.
  * CLAUDE.md 11장이 6개를 규정하고 있어, 나중에 enum 을 다시 여는 것보다 한 번에 맞추는 편이 낫다.
+ *
+ * <p>{@code NOT_FOUND} 와 {@code METHOD_NOT_ALLOWED} 는 Phase 4 착수 전 실측으로 추가했다.
+ * {@code @ExceptionHandler(Exception.class)} catch-all 이 Spring MVC 표준 예외
+ * ({@code NoResourceFoundException}, {@code HttpRequestMethodNotSupportedException}) 를
+ * 종류를 가리지 않고 삼켜 전부 500 {@code INTERNAL_ERROR} 로 나가고 있었다.
  */
 @Getter
 @RequiredArgsConstructor
@@ -42,6 +47,17 @@ public enum ErrorCode {
      * 사실을 알려주므로 리소스 존재 여부가 새어나간다(CLAUDE.md 6장).
      */
     TODO_NOT_FOUND(HttpStatus.NOT_FOUND, "할 일을 찾을 수 없습니다."),
+
+    /**
+     * 존재하지 않는 API 경로.
+     *
+     * <p>{@code TODO_NOT_FOUND} 와 겸용하지 않는다. 메시지가 "할 일을 찾을 수 없습니다"라
+     * 경로 오류에 쓰면 문구가 어긋난다.
+     */
+    NOT_FOUND(HttpStatus.NOT_FOUND, "요청한 리소스를 찾을 수 없습니다."),
+
+    /** 해당 경로가 지원하지 않는 HTTP 메서드로 호출됨. */
+    METHOD_NOT_ALLOWED(HttpStatus.METHOD_NOT_ALLOWED, "지원하지 않는 요청 방식입니다."),
 
     /** 회원가입 시 이메일 중복. */
     EMAIL_DUPLICATED(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
