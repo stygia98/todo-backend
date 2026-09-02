@@ -18,6 +18,17 @@ spring:
           # 저장·비교는 전부 UTC로 하고, 표시할 때만 브라우저 로컬 시각으로 변환한다.
           time_zone: UTC
 
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            # registration id 가 google 이면 CommonOAuth2Provider.GOOGLE 프리셋이
+            # authorization-uri/token-uri/user-info-uri/scope 를 자동으로 채운다.
+            # provider 블록을 직접 쓰지 않는다.
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+
 # Jackson 날짜 설정은 두지 않는다.
 # Spring Boot 4는 Jackson 3을 쓰고 기본값이 이미 ISO-8601 문자열이므로 무설정으로 충족된다.
 # Boot 3 시절의 spring.jackson.serialization.* 경로는 Boot 4에서 동작하지 않는다.
@@ -38,8 +49,3 @@ app:
     # 운영에서 Amplify 브랜치 도메인과 커스텀 도메인을 동시에 허용해야 하므로
     # 위의 frontend-url 과 하나로 합치지 않는다.
     allowed-origins: ${CORS_ALLOWED_ORIGINS}
-
-# 구글 OAuth2 registration 블록은 여기에 두지 않는다 (Phase 5에서 추가).
-# oauth2-client 스타터가 이미 classpath에 있어, client-id를 환경변수로 바인딩해 두면
-# GOOGLE_CLIENT_ID 미설정 시 플레이스홀더 해석 실패로 기동 자체가 깨진다.
-# registration 이 없으면 자동 설정이 조건부라 아무 빈도 만들지 않아 안전하다.

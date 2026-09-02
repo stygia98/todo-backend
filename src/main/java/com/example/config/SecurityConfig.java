@@ -60,6 +60,9 @@ public class SecurityConfig {
     private final UserRepository userRepository;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final OAuth2FailureHandler oAuth2FailureHandler;
 
     /**
      * CORS 허용 오리진. <b>쉼표로 구분된 목록</b>이다.
@@ -96,6 +99,14 @@ public class SecurityConfig {
                 .exceptionHandling(handling -> handling
                         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
                         .accessDeniedHandler(jwtAccessDeniedHandler)
+                )
+
+                // 구글 OIDC 로그인. userInfoEndpoint 에 oidcUserService 를 지정해야
+                // CustomOAuth2UserService 가 호출된다(구글 기본 scope 에 openid 가 포함돼 OIDC 흐름이다).
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(u -> u.oidcUserService(customOAuth2UserService))
+                        .successHandler(oAuth2SuccessHandler)
+                        .failureHandler(oAuth2FailureHandler)
                 )
 
                 .addFilterBefore(jwtAuthenticationFilter(),
