@@ -43,8 +43,12 @@ export DB_PASSWORD='실제_비밀번호'
 export JWT_SECRET='32자-이상의-임의-문자열-을-여기에-넣는다'
 export FRONTEND_URL=http://localhost:3000
 export CORS_ALLOWED_ORIGINS=http://localhost:3000
+export GOOGLE_CLIENT_ID='구글_클라이언트_ID'
+export GOOGLE_CLIENT_SECRET='구글_클라이언트_시크릿'
 ./mvnw spring-boot:run
 ```
+
+> **Phase 5부터 `GOOGLE_CLIENT_ID`·`GOOGLE_CLIENT_SECRET`도 필수다.** 비어 있으면 `security.oauth2.client.registration.google.*` 바인딩이 실패해 기동 자체가 안 된다. 구글 로그인을 쓰지 않는 작업(Todo API 등)이라도 값을 채워야 서버가 뜬다.
 
 `.env`를 만들어 두었다면 한 줄로 불러올 수 있다.
 
