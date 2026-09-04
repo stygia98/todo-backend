@@ -26,8 +26,7 @@ public class HtmlSanitizer {
      * 다시 챙겨야 해 {@code prettyPrint(false)} 를 놓치기 쉽다(jsoup 1.23.2 jar 로 확인).
      */
     private static final Safelist SAFELIST = Safelist.none()
-            .addTags("p", "br", "strong", "em", "h2", "h3", "ul", "ol", "li",
-                    "a", "code", "pre", "blockquote")
+            .addTags("p", "br", "strong", "em", "ul", "ol", "li", "a", "code", "pre")
             .addAttributes("a", "href", "rel", "target")
             .addProtocols("a", "href", "http", "https", "mailto")
             .addEnforcedAttribute("a", "rel", "noopener noreferrer")
