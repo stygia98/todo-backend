@@ -29,6 +29,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+import java.util.Map;
+
 import static com.example.config.OpenApiConfig.SECURITY_SCHEME_NAME;
 
 /**
@@ -61,7 +64,12 @@ public class TodoController {
             @RequestParam(required = false) Boolean completed,
             @RequestParam(required = false) String keyword) {
         Page<Todo> page = todoService.list(user.getId(), completed, keyword, pageable);
-        return ResponseEntity.ok(ApiResponse.ok(PageResponse.of(page, TodoResponse::from)));
+        // 배치 조회 한 번으로 페이지 전체의 첨부를 미리 만든다 — 항목마다 조회하면 N+1이 된다.
+        List<Long> todoIds = page.getContent().stream().map(Todo::getId).toList();
+        Map<Long, List<TodoResponse.AttachmentView>> attachmentsByTodo =
+                todoService.attachmentViewsByTodoId(todoIds);
+        return ResponseEntity.ok(ApiResponse.ok(PageResponse.of(page,
+                todo -> TodoResponse.from(todo, attachmentsByTodo.getOrDefault(todo.getId(), List.of())))));
     }
 
     /** 생성. 상태 코드는 201 이 아니라 200 이다 — Phase 3 의 signup 과 같은 판단을 유지한다. */
@@ -70,7 +78,8 @@ public class TodoController {
             @AuthenticationPrincipal User user,
             @Valid @RequestBody TodoCreateRequest request) {
         Todo todo = todoService.create(user, request);
-        return ResponseEntity.ok(ApiResponse.ok(TodoResponse.from(todo)));
+        return ResponseEntity.ok(ApiResponse.ok(
+                TodoResponse.from(todo, todoService.attachmentViewsFor(todo.getId()))));
     }
 
     /** 단건 조회. 존재하지 않거나 타인 소유이면 {@code TodoService} 가 404 를 던진다. */
@@ -79,7 +88,8 @@ public class TodoController {
             @AuthenticationPrincipal User user,
             @PathVariable Long id) {
         Todo todo = todoService.get(id, user.getId());
-        return ResponseEntity.ok(ApiResponse.ok(TodoResponse.from(todo)));
+        return ResponseEntity.ok(ApiResponse.ok(
+                TodoResponse.from(todo, todoService.attachmentViewsFor(todo.getId()))));
     }
 
     /**
@@ -92,7 +102,8 @@ public class TodoController {
             @PathVariable Long id,
             @Valid @RequestBody TodoUpdateRequest request) {
         Todo todo = todoService.update(id, user.getId(), request);
-        return ResponseEntity.ok(ApiResponse.ok(TodoResponse.from(todo)));
+        return ResponseEntity.ok(ApiResponse.ok(
+                TodoResponse.from(todo, todoService.attachmentViewsFor(todo.getId()))));
     }
 
     /**
@@ -105,7 +116,8 @@ public class TodoController {
             @PathVariable Long id,
             @Valid @RequestBody TodoToggleRequest request) {
         Todo todo = todoService.toggle(id, user.getId(), request.completed());
-        return ResponseEntity.ok(ApiResponse.ok(TodoResponse.from(todo)));
+        return ResponseEntity.ok(ApiResponse.ok(
+                TodoResponse.from(todo, todoService.attachmentViewsFor(todo.getId()))));
     }
 
     /** Soft Delete. 돌려줄 값이 없으므로 {@link ApiResponse#ok()} 무인자 팩토리를 쓴다. */

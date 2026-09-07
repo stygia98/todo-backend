@@ -5,6 +5,7 @@ import com.example.domain.TodoRepository;
 import com.example.domain.TodoSpecifications;
 import com.example.domain.User;
 import com.example.dto.TodoCreateRequest;
+import com.example.dto.TodoResponse;
 import com.example.dto.TodoUpdateRequest;
 import com.example.exception.BusinessException;
 import com.example.exception.ErrorCode;
@@ -17,6 +18,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -40,6 +43,8 @@ public class TodoService {
 
     private final TodoRepository todoRepository;
     private final HtmlSanitizer htmlSanitizer;
+    private final AttachmentHtmlReader attachmentHtmlReader;
+    private final AttachmentService attachmentService;
 
     /**
      * 목록 조회. {@code completed} 가 {@code null} 이면 전체, {@code keyword} 가 {@code null} 이면
@@ -60,10 +65,16 @@ public class TodoService {
 
     @Transactional
     public Todo create(User user, TodoCreateRequest request) {
+        // 정화가 먼저다 — 여기서 img@src 가 제거되고 data-attachment-id 만 남는다.
         String sanitizedContent = htmlSanitizer.clean(request.content());
-        Todo todo = Todo.create(user, request.title(), sanitizedContent,
-                request.priority(), request.dueDate());
-        return todoRepository.save(todo);
+        // 저장될 "정본"에서 수집한다. 정화 전 원문에서 수집하면 제거된 img 의 첨부가
+        // 영구 고아가 된다(AttachmentHtmlReader, AttachmentService.link 참조).
+        Set<Long> attachmentIds = attachmentHtmlReader.extractAttachmentIds(sanitizedContent);
+        Todo todo = todoRepository.save(Todo.create(user, request.title(), sanitizedContent,
+                request.priority(), request.dueDate()));
+        // todo.id 가 필요하므로 save 이후다. 소유권·상태 검증도 여기서 한다.
+        attachmentService.link(todo, user.getId(), attachmentIds);
+        return todo;
     }
 
     public Todo get(Long id, Long userId) {
@@ -78,7 +89,9 @@ public class TodoService {
     public Todo update(Long id, Long userId, TodoUpdateRequest request) {
         Todo todo = findOwned(id, userId);
         String sanitizedContent = htmlSanitizer.clean(request.content());
+        Set<Long> attachmentIds = attachmentHtmlReader.extractAttachmentIds(sanitizedContent);
         todo.update(request.title(), sanitizedContent, request.priority(), request.dueDate());
+        attachmentService.link(todo, userId, attachmentIds);
         return todo;
     }
 
@@ -98,6 +111,21 @@ public class TodoService {
     public void delete(Long id, Long userId) {
         Todo todo = findOwned(id, userId);
         todo.softDelete();
+    }
+
+    /**
+     * 페이지 내 여러 Todo의 첨부 조회용 URL을 배치 조회한다(N+1 방지).
+     *
+     * <p>{@code TodoController.list()}가 한 번만 호출해 전체 결과를 미리 만든 뒤,
+     * {@code todo.id}로 꺼내 쓴다. 항목마다 이 메서드를 호출하면 배치의 의미가 없어진다.
+     */
+    public Map<Long, List<TodoResponse.AttachmentView>> attachmentViewsByTodoId(List<Long> todoIds) {
+        return attachmentService.viewsForTodos(todoIds);
+    }
+
+    /** 단건 응답(생성·조회·수정·토글)용. 내부적으로 위 배치 메서드를 그대로 재사용한다. */
+    public List<TodoResponse.AttachmentView> attachmentViewsFor(Long todoId) {
+        return attachmentViewsByTodoId(List.of(todoId)).getOrDefault(todoId, List.of());
     }
 
     /**

@@ -62,6 +62,23 @@ public enum ErrorCode {
     /** 회원가입 시 이메일 중복. */
     EMAIL_DUPLICATED(HttpStatus.CONFLICT, "이미 사용 중인 이메일입니다."),
 
+    /**
+     * 첨부 없음 또는 소유자 불일치.
+     *
+     * <p>{@code TODO_NOT_FOUND}와 같은 정책이다 — 타인 소유 첨부에 접근하면 403이 아니라
+     * 404를 준다(CLAUDE.md 6장, 존재 여부 비노출).
+     */
+    ATTACHMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "첨부 파일을 찾을 수 없습니다."),
+
+    /** 이미 업로드 완료(LINKED)로 확정된 첨부에 다시 업로드/완료 요청이 온 경우. */
+    ATTACHMENT_ALREADY_UPLOADED(HttpStatus.CONFLICT, "이미 업로드된 첨부 파일입니다."),
+
+    /** 파일 크기 상한(5MB) 초과. presign 선언값과 실제 수신 바이트 양쪽에서 검사한다. */
+    FILE_TOO_LARGE(HttpStatus.BAD_REQUEST, "파일 크기가 너무 큽니다. (최대 5MB)"),
+
+    /** 허용되지 않은 contentType 이거나 매직바이트가 선언된 형식과 일치하지 않음. */
+    UNSUPPORTED_FILE_TYPE(HttpStatus.BAD_REQUEST, "지원하지 않는 파일 형식입니다."),
+
     /** 처리하지 못한 서버 오류. 원인은 로그에만 남긴다. */
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 오류가 발생했습니다.");
 

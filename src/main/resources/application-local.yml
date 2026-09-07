@@ -25,3 +25,12 @@ logging:
     org.hibernate: info
     # 바인딩 파라미터까지 보려면 org.hibernate.orm.jdbc.bind 를 trace 로 올린다.
     org.hibernate.SQL: debug
+
+app:
+  storage:
+    type: local
+    local:
+      # 기본값을 두지 않는다. 미설정 시 기동 자체가 실패해야 사용자 업로드 바이너리가
+      # 엉뚱한 경로(예: 문서 저장소 워킹트리)에 쌓이는 사고를 막을 수 있다.
+      base-dir: ${LOCAL_UPLOAD_DIR}
+      base-url: ${BACKEND_BASE_URL:http://localhost:8080}
