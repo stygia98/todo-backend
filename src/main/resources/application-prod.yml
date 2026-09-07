@@ -23,9 +23,7 @@ logging:
 
 app:
   storage:
-    # Phase 14부터 S3StorageService(@ConditionalOnProperty)가 이 값으로 활성화된다.
-    # 지금은 클래스가 없어 효과가 없지만, Phase 11 배포 시점에 키가 이미 갖춰져 있도록
-    # 미리 선언해 둔다(Phase 12 DoD 항목).
+    # S3StorageService(@ConditionalOnProperty)가 이 값으로 활성화된다.
     type: s3
     local:
       # ⚠️ LocalStorageService 는 storage.type 값과 무관하게 항상 @Component 로 등록된다
@@ -34,6 +32,7 @@ app:
       base-dir: ${LOCAL_UPLOAD_DIR}
       base-url: ${BACKEND_BASE_URL}
     s3:
-      # Phase 14에서 S3StorageService 가 실제로 사용한다.
+      # S3 콘솔 설정(버킷 CORS·Block Public Access·IAM 정책)은 Phase 14 "AWS 콘솔 설정" 태스크에서
+      # 완료했다. 실제 버킷명·리전은 하드코딩하지 않고 환경변수로만 주입한다.
       bucket: ${AWS_S3_BUCKET}
       region: ${AWS_REGION:ap-northeast-2}
