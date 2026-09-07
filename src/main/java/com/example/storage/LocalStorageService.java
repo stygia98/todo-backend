@@ -82,6 +82,16 @@ public class LocalStorageService implements StorageService {
     }
 
     @Override
+    public byte[] readHeader(String storageKey, int maxBytes) {
+        Path path = resolveSafe(storageKey);
+        try (InputStream in = Files.newInputStream(path)) {
+            return in.readNBytes(maxBytes);
+        } catch (IOException e) {
+            throw new UncheckedIOException("파일을 읽을 수 없습니다: " + storageKey, e);
+        }
+    }
+
+    @Override
     public void delete(String storageKey) {
         Path path = resolveSafe(storageKey);
         try {

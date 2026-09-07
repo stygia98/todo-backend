@@ -39,6 +39,8 @@ import java.util.stream.Collectors;
 public class AttachmentService {
 
     private static final DateTimeFormatter KEY_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy/MM");
+    /** 매직바이트 검증에 필요한 최대 길이. WebP 검증(RIFF....WEBP)이 12바이트로 가장 길다. */
+    private static final int MAGIC_BYTE_HEADER_SIZE = 12;
 
     private final AttachmentRepository attachmentRepository;
     private final StorageServiceResolver storageServiceResolver;
@@ -102,22 +104,25 @@ public class AttachmentService {
      * <p>검증에 실패하면 손상되었거나 위조된 파일이므로 즉시 삭제한다. 링크 해제(Todo 저장
      * 시 본문에서 빠짐)처럼 롤백 가능성이 있는 삭제가 아니라, 애초에 유효하지 않은 파일을
      * 치우는 것이므로 트랜잭션 안에서 바로 지운다.
+     *
+     * <p>존재·크기 확인({@code verifyUploaded})과 매직바이트용 헤더 읽기({@code readHeader})는
+     * {@code StorageService} 공통 인터페이스로 처리해 LOCAL·S3 양쪽에서 동작한다 — S3는
+     * Range GetObject로 앞부분만 가져오므로 전체 다운로드가 필요 없다.
      */
     @Transactional
     public AttachmentViewResponse complete(Long id, Long userId) {
         Attachment attachment = findOwned(id, userId);
         StorageService storageService = storageServiceResolver.forAttachment(attachment);
-        LocalStorageService local = requireLocal(storageService);
 
         long actualSize = storageService.verifyUploaded(attachment.getStorageKey());
         if (actualSize > maxFileSize) {
-            local.delete(attachment.getStorageKey());
+            storageService.delete(attachment.getStorageKey());
             throw new BusinessException(ErrorCode.FILE_TOO_LARGE);
         }
 
-        byte[] header = local.read(attachment.getStorageKey());
+        byte[] header = storageService.readHeader(attachment.getStorageKey(), MAGIC_BYTE_HEADER_SIZE);
         if (!hasValidMagicBytes(header, attachment.getContentType())) {
-            local.delete(attachment.getStorageKey());
+            storageService.delete(attachment.getStorageKey());
             throw new BusinessException(ErrorCode.UNSUPPORTED_FILE_TYPE);
         }
 

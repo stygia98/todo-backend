@@ -48,6 +48,11 @@ class StorageServiceResolverTest {
         }
 
         @Override
+        public byte[] readHeader(String storageKey, int maxBytes) {
+            return new byte[0];
+        }
+
+        @Override
         public void delete(String storageKey) {
             // 검증 대상이 아니다.
         }
