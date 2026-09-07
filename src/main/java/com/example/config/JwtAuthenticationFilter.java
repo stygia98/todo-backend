@@ -56,6 +56,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         resolveToken(request)
                 .flatMap(jwtTokenProvider::parseClaims)
+                .filter(this::isAccessToken)
                 .flatMap(this::findActiveUser)
                 .ifPresent(this::authenticate);
 
@@ -72,6 +73,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         String token = header.substring(BEARER_PREFIX.length()).trim();
         return token.isEmpty() ? Optional.empty() : Optional.of(token);
+    }
+
+    /**
+     * {@code purpose} 클레임이 {@code "access"}인 토큰만 인증에 쓴다.
+     *
+     * <p>첨부 이미지 조회용 뷰 토큰({@code AttachmentTokenProvider} 발급,
+     * {@code purpose=attachment-view})은 이 필터와 같은 시크릿/HS256으로 서명되어
+     * 서명 검증 자체는 통과한다. 이 검사가 없으면 뷰 토큰을 {@code Authorization: Bearer}로
+     * 보내는 것만으로 API 전체가 열려버린다(양방향 권한 상승 방지 중 첫 번째, Phase 12).
+     */
+    private boolean isAccessToken(Claims claims) {
+        return "access".equals(claims.get("purpose", String.class));
     }
 
     /**

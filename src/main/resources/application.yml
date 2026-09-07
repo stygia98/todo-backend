@@ -49,3 +49,13 @@ app:
     # 운영에서 Amplify 브랜치 도메인과 커스텀 도메인을 동시에 허용해야 하므로
     # 위의 frontend-url 과 하나로 합치지 않는다.
     allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  upload:
+    # 5MB. presign 단계(선언값)와 수신 단계(실측값) 양쪽에서 이 상한을 검사한다.
+    # 선언값은 클라이언트 주장일 뿐이므로 수신 단계가 실질적 방어다.
+    max-file-size: 5242880
+    allowed-content-types: image/jpeg,image/png,image/gif,image/webp
+  storage:
+    # 첨부 조회용 뷰 토큰의 만료 시간(밀리초, 기본 24시간). 액세스 토큰과 동일하게 둔다 —
+    # 상세 화면을 열어둔 채 짧게 만료되면 "캐시된 본문 + 만료된 URL" 조합이 생겨
+    # 에디터 재마운트가 필요해지고, 이는 편집 중이던 입력을 날린다(6장 참조).
+    url-expiry-millis: ${ATTACHMENT_URL_EXPIRATION:86400000}
