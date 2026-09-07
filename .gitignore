@@ -36,3 +36,7 @@ build/
 # .env*만 쓰면 .env.example까지 무시되므로 예외 줄이 반드시 필요하다
 .env*
 !.env.example
+
+### 첨부 이미지 로컬 업로드 디렉터리 (Phase 12) ###
+# 실제 경로는 LOCAL_UPLOAD_DIR 환경변수로 주입한다. 저장소 안에 두는 경우를 대비해 무시한다.
+uploads/

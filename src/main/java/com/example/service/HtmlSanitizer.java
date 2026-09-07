@@ -26,12 +26,17 @@ public class HtmlSanitizer {
      * 다시 챙겨야 해 {@code prettyPrint(false)} 를 놓치기 쉽다(jsoup 1.23.2 jar 로 확인).
      */
     private static final Safelist SAFELIST = Safelist.none()
-            .addTags("p", "br", "strong", "em", "h2", "h3", "ul", "ol", "li",
-                    "a", "code", "pre", "blockquote")
+            .addTags("p", "br", "strong", "em", "ul", "ol", "li", "a", "code", "pre", "img")
             .addAttributes("a", "href", "rel", "target")
             .addProtocols("a", "href", "http", "https", "mailto")
             .addEnforcedAttribute("a", "rel", "noopener noreferrer")
-            .addEnforcedAttribute("a", "target", "_blank");
+            .addEnforcedAttribute("a", "target", "_blank")
+            // ⚠️ img 는 data-attachment-id·alt 만 허용하고 src 는 절대 등록하지 않는다.
+            // 조회 URL(viewUrl)은 만료되는 서명 토큰을 포함하는 표시 전용 값이라 저장할
+            // 정본(canonical) HTML 에는 남으면 안 된다. Safelist 는 화이트리스트이므로
+            // addAttributes 에 없는 속성은 값과 무관하게 제거된다 — 이것이 저장 시점의
+            // 최종 방어선이다(addProtocols("img","src",...) 를 호출하지 않는 것도 같은 이유).
+            .addAttributes("img", "data-attachment-id", "alt");
 
     /**
      * 기본 pretty-print 는 블록 요소를 재포맷해 {@code pre} 블록의 공백과 줄바꿈을 망가뜨린다.

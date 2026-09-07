@@ -18,11 +18,19 @@ import java.util.Optional;
  *
  * <h2>클레임 구성 (CLAUDE.md 6장)</h2>
  * <pre>
- * sub   : user.id (숫자 문자열)   ← 이메일이 아니다
- * email : user.email
- * iat   : 발급 시각
- * exp   : 발급 + 24시간
+ * sub     : user.id (숫자 문자열)   ← 이메일이 아니다
+ * email   : user.email
+ * purpose : "access"
+ * iat     : 발급 시각
+ * exp     : 발급 + 24시간
  * </pre>
+ *
+ * <h2>⚠️ {@code purpose} 클레임 (Phase 12부터)</h2>
+ *
+ * <p>첨부 이미지 조회용 뷰 토큰({@link AttachmentTokenProvider}, {@code purpose=attachment-view})은
+ * 이 클래스와 <b>같은 시크릿/HS256으로 서명</b>되므로, {@code purpose} 검사가 없으면 뷰 토큰도
+ * 서명 검증을 통과해 {@code Authorization: Bearer}로 API 전체를 열어버린다.
+ * {@code JwtAuthenticationFilter}는 이 클레임이 {@code "access"}인 토큰만 인증에 사용한다.
  *
  * <p>{@code sub} 에 id 를 담으므로 인증 필터가 PK 조회로 끝난다.
  * 이메일을 담으면 인덱스는 있어도 PK 조회보다 느리고, 이메일 변경 기능이 생기면 토큰이 깨진다.
@@ -71,6 +79,9 @@ public class JwtTokenProvider {
         return Jwts.builder()
                 .subject(String.valueOf(userId))
                 .claim("email", email)
+                // 뷰 토큰(attachment-view)과 구분하기 위한 클레임. JwtAuthenticationFilter가
+                // 이 값이 "access"인 토큰만 인증에 사용한다(Phase 12, 위 클래스 설명 참조).
+                .claim("purpose", "access")
                 .issuedAt(now)
                 .expiration(expiresAt)
                 // ⚠️ 알고리즘을 반드시 명시한다. 인자 없는 signWith(key) 는 jjwt 가 키 길이로

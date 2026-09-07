@@ -40,7 +40,10 @@ public class SecurityConfig {
             // Swagger를 빼먹으면 Phase 1 DoD가 Phase 3에서 조용히 회귀한다.
             "/swagger-ui/**",
             "/v3/api-docs/**",
-            "/error"
+            "/error",
+            // Phase 12부터. Authorization 헤더가 아니라 쿼리의 뷰 토큰으로 인가하므로
+            // (AttachmentController#raw 참조) authenticated()로 두면 컨트롤러에 도달하지 못한다.
+            "/api/v1/attachments/*/raw"
     };
 
     /** CORS 허용 메서드. CLAUDE.md 6장 목록 그대로다. */
