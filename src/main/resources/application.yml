@@ -1,5 +1,17 @@
 # 공통 설정 (모든 프로파일이 공유한다)
 # 환경마다 달라지는 값(DB 접속, ddl-auto)은 application-{프로파일}.yml 에 둔다.
+
+server:
+  # X-Forwarded-Host/Port 등을 신뢰해 request 기반으로 만드는 절대경로 URL(첨부 조회 등)이
+  # 올바른 호스트를 가리키게 한다. 로컬(프록시 없음)은 헤더 자체가 없어 영향 없다.
+  #
+  # ⚠️ X-Forwarded-Proto는 이 설정과 무관하게 별도로 대응한다. CloudFront 커스텀 오리진 헤더로
+  # X-Forwarded-Proto: https를 등록해도 실제로는 오리진에 전달되지 않는 것을 확인했다
+  # (2026-09-10, /api/v1/debug/headers로 직접 검증 — X-Forwarded-For는 오는데 Proto만 없음).
+  # 그래서 OAuth2 redirect-uri는 request 기반 추론에 기대지 않고 application-prod.yml에서
+  # OAUTH2_REDIRECT_BASE_URL로 직접 고정한다.
+  forward-headers-strategy: framework
+
 spring:
   application:
     name: todo-backend

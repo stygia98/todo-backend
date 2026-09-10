@@ -2,6 +2,16 @@
 # 실행: java -jar app.jar --spring.profiles.active=prod
 # 공통 설정(application.yml)에 병합되며, 같은 키만 덮어쓴다.
 spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            # CloudFront가 X-Forwarded-Proto를 오리진에 전달하지 않아(application.yml 참조),
+            # request로부터 baseUrl(scheme)을 추론하는 기본 템플릿에 기대지 않고 운영 공개
+            # 도메인을 직접 고정한다. 로컬은 이 값이 없어 Spring 기본 템플릿을 그대로 쓴다.
+            redirect-uri: ${OAUTH2_REDIRECT_BASE_URL}/login/oauth2/code/google
+
   datasource:
     # RDS 엔드포인트. 기본값을 두지 않는다 — 미설정 시 조용히 로컬에 붙는 사고를 막는다.
     url: ${DB_URL}
