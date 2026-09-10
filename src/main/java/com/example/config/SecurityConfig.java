@@ -35,6 +35,9 @@ public class SecurityConfig {
     private static final String[] PUBLIC_PATHS = {
             "/api/v1/auth/signup",
             "/api/v1/auth/login",
+            // 배포 직후 토큰 없이 정상 기동 여부를 확인하기 위한 운영 보조 엔드포인트.
+            // CLAUDE.md 5장 API 명세에는 없다(HealthController 참조).
+            "/api/v1/health",
             "/oauth2/**",
             "/login/oauth2/**",
             // Swagger를 빼먹으면 Phase 1 DoD가 Phase 3에서 조용히 회귀한다.

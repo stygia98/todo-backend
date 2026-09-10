@@ -1,2 +1,5 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
+
+# EC2(Linux)에서 실행하는 배포 스크립트. CRLF로 체크아웃되면 bash에서 실행이 실패한다.
+deploy/*.sh text eol=lf

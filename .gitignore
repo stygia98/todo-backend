@@ -40,3 +40,8 @@ build/
 ### 첨부 이미지 로컬 업로드 디렉터리 (Phase 12) ###
 # 실제 경로는 LOCAL_UPLOAD_DIR 환경변수로 주입한다. 저장소 안에 두는 경우를 대비해 무시한다.
 uploads/
+
+### 배포용 실제 환경변수 파일 (Phase 11) ###
+# deploy/todolist.env.example(값 없음)만 커밋한다. 실제 값이 채워진 파일을 실수로
+# 이 폴더에 두더라도 커밋되지 않도록 명시적으로 무시한다.
+deploy/todolist.env

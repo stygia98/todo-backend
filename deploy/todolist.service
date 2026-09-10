@@ -1,0 +1,32 @@
+[Unit]
+Description=TodoList Spring Boot Backend
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+Group=ec2-user
+WorkingDirectory=/home/ec2-user
+
+# /etc/todolist/todolist.env 에서 환경변수를 읽는다 (install.sh가 root:root 600으로 배치).
+# systemd는 root 권한으로 이 파일을 먼저 읽은 뒤 ec2-user로 프로세스를 실행하므로
+# 파일 권한을 좁혀도 EnvironmentFile 로딩에는 영향이 없다.
+EnvironmentFile=/etc/todolist/todolist.env
+
+# t2.micro(RAM 1GB) 기준 JVM 메모리 상한. CLAUDE.md 3장 "JVM 최대 512MB" 규칙.
+Environment="JAVA_OPTS=-Xms128m -Xmx512m -Xss512k -XX:+UseSerialGC -Dspring.profiles.active=prod"
+
+ExecStart=/usr/bin/java $JAVA_OPTS -jar /home/ec2-user/todo-backend.jar
+
+Restart=on-failure
+RestartSec=10
+
+# 표준 출력/에러를 journald로 보낸다. journalctl -u todolist 로 조회한다.
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=todolist
+
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
